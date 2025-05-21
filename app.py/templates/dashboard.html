@@ -1,0 +1,707 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<!-- Import Tailwind Dark Mode Styles -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> <!-- Tailwind CSS -->
+<link href="static/css/custom-dark.css" rel="stylesheet"> <!-- Custom Dark Theme -->
+{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-200 mb-6">Welcome, {{ current_user.name }}!</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Tasks Overview -->
+    <div class="bg-gray-800 text-gray-300 rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Recent Tasks <span class="text-sm text-gray-400 task-count">({{ tasks|length }})</span></h2>
+            <a href="{{ url_for('tasks') }}" class="text-blue-400 hover:text-blue-600 text-sm">View All</a>
+        </div>
+        {% if tasks %}
+            <div class="space-y-3 dashboard-tasks-list">
+                {% for task in tasks %}
+                <div class="pl-3 border-l-4 {% if task.status == 'completed' %}border-green-500{% elif task.due_date and task.due_date < now %}border-red-500{% else %}border-blue-500{% endif %}">
+                    <div class="flex justify-between">
+                        <span class="font-medium">{{ task.title }}</span>
+                        <span class="text-sm text-gray-400">{{ task.type }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="{% if task.status == 'completed' %}text-green-400{% elif task.due_date and task.due_date < now %}text-red-400{% else %}text-gray-400{% endif %}">
+                            {{ task.status|capitalize }}
+                        </span>
+                        {% if task.due_date %}
+                        <span>Due: {{ task.due_date.strftime('%Y-%m-%d') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="dashboard-tasks-list">
+                <p class="text-gray-400">No tasks yet. <a href="{{ url_for('tasks') }}" class="text-blue-400">Add a task</a>.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Progress Overview -->
+    <div class="bg-gray-800 text-gray-300 rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Skills Progress</h2>
+            <a href="{{ url_for('progress') }}" class="text-blue-400 hover:text-blue-600 text-sm">View Details</a>
+        </div>
+        <div class="h-60">
+            <canvas id="skillsChart" class="text-gray-300"></canvas>
+        </div>
+    </div>
+
+    <!-- Reminders / Mentor Section -->
+    <div class="bg-gray-800 text-gray-300 rounded-lg shadow-lg p-6">
+        {% if current_user.role == 'mentor' %}
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Your Students</h2>
+                <a href="{{ url_for('feedback') }}" class="text-blue-400 hover:text-blue-600 text-sm">Feedback</a>
+            </div>
+            {% if students %}
+                <div class="space-y-3">
+                    {% for student in students %}
+                    <div class="flex justify-between items-center border-b border-gray-600 pb-2">
+                        <span>{{ student.name }}</span>
+                        <a href="{{ url_for('feedback') }}?student_id={{ student.id }}" class="text-blue-400 hover:text-blue-600 text-sm">Give Feedback</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-400">No students assigned yet.</p>
+            {% endif %}
+        {% else %}
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Upcoming Reminders</h2>
+                <a href="{{ url_for('reminders') }}" class="text-blue-400 hover:text-blue-600 text-sm">View All</a>
+            </div>
+            {% if reminders %}
+                <div class="space-y-3 dashboard-reminders-list">
+                    {% for reminder in reminders %}
+                    <div class="pl-3 border-l-4 border-yellow-500">
+                        <div class="font-medium">{{ reminder.message }}</div>
+                        <div class="text-sm text-gray-400">{{ reminder.trigger_time.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="dashboard-reminders-list">
+                    <p class="text-gray-400">No upcoming reminders. <a href="{{ url_for('reminders') }}" class="text-blue-400">Add a reminder</a>.</p>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Analytics and Chat Section (2-column layout) -->
+<div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Analytics Section (2 columns wide) -->
+    <div class="lg:col-span-2">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-200">Analytics</h2>
+            <button id="refresh-charts" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+            </button>
+        </div>
+        <div class="bg-gray-800 text-gray-300 rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-2">Completed Tasks by Users</h3>
+            <div class="h-60">
+                <canvas id="taskChart" class="text-gray-300"></canvas>
+            </div>
+            <div class="text-xs text-gray-400 mt-2 text-center" id="task-chart-updated">Last updated: Just now</div>
+        </div>
+    </div>
+
+    <!-- Chat Assistant Section (1 column wide) -->
+    <div class="lg:col-span-1">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-200">Chat Assistant</h2>
+            <a href="{{ url_for('chat') }}" class="text-blue-400 hover:text-blue-600 text-sm">Full Chat</a>
+        </div>
+        <div class="bg-gray-800 text-gray-300 rounded-lg shadow-lg flex flex-col h-96">
+            <!-- Chat Messages -->
+
+<div id="chat-messages" class="flex-grow overflow-y-auto p-4">
+    <!-- Welcome message -->
+    <div class="flex mb-4">
+        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="ml-3 bg-gray-700 text-white p-2 rounded-lg shadow-sm max-w-full text-sm">
+            <p>Hello, {{ current_user.name }}! How can I assist you today?</p>
+        </div>
+    </div>
+
+    <!-- No chat history displayed here -->
+    <!-- Previous chat history section removed -->
+</div>
+
+            <!-- Chat Input -->
+            <div class="border-t border-gray-700 p-3 bg-gray-800">
+                <form id="mini-chat-form" class="flex">
+                    <input type="text" id="mini-message-input" class="flex-grow px-3 py-2 text-sm border border-gray-600 rounded-l bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Type your message...">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-r">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Section -->
+<div class="mt-8">
+    <h2 class="text-xl font-semibold mb-4 text-gray-200">Quick Actions</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <a href="{{ url_for('tasks') }}" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md text-center transition-colors text-gray-300">
+            <div class="text-blue-400 text-2xl mb-2">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="font-medium">Manage Tasks</div>
+        </a>
+        <a href="{{ url_for('chat') }}" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md text-center transition-colors text-gray-300">
+            <div class="text-blue-400 text-2xl mb-2">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div class="font-medium">Chat Assistant</div>
+        </a>
+        <a href="{{ url_for('progress') }}" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md text-center transition-colors text-gray-300">
+            <div class="text-blue-400 text-2xl mb-2">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="font-medium">Update Progress</div>
+        </a>
+        <a href="{{ url_for('reports') }}" class="bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md text-center transition-colors text-gray-300">
+            <div class="text-blue-400 text-2xl mb-2">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="font-medium">Generate Report</div>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update timestamp displays for charts
+    function updateTimestamps() {
+        const timestamp = new Date().toLocaleTimeString();
+        document.getElementById('task-chart-updated').textContent = `Last updated: ${timestamp}`;
+    }
+</script>
+<!-- Include the enhanced dashboard JS functionality -->
+<script>
+// Enhanced dashboard script with dynamic chart updating
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts with a slight delay to ensure DOM is fully loaded
+    setTimeout(initializeCharts, 100);
+
+    // Initialize tooltips
+    initializeTooltips();
+
+    // Add event listeners for task status updates
+    setupTaskStatusListeners();
+
+    // Update task counts
+    updateTaskCounts();
+
+    // Set up periodic data refresh for charts
+    setupChartDataRefresh();
+
+    // Initialize mini chat functionality
+    initializeMiniChat();
+});
+
+// CHART INITIALIZATION AND UPDATE FUNCTIONS
+// Main chart initialization function
+function initializeCharts() {
+    // Initialize task bar chart
+    initializeTaskChart();
+
+    // Initialize skills radar chart (if applicable)
+    initializeSkillsRadarChart();
+}
+
+// Set up periodic data refresh for all charts
+function setupChartDataRefresh() {
+    // Refresh charts every 30 seconds
+    setInterval(refreshAllChartData, 30000);
+
+    // Add manual refresh button functionality
+    const refreshButton = document.getElementById('refresh-charts');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function() {
+            refreshAllChartData();
+            showNotification('Charts refreshed', 'success');
+            updateTimestamps();
+        });
+    }
+}
+
+// Function to refresh all chart data
+function refreshAllChartData() {
+    refreshTaskChartData();
+    refreshSkillsRadarChartData();
+    updateTimestamps();
+}
+
+// Initialize the task completion bar chart
+function initializeTaskChart() {
+    const taskChartElement = document.getElementById('taskChart');
+    if (!taskChartElement) return;
+
+    const taskCtx = taskChartElement.getContext('2d');
+
+    // Initial data (will be updated by API)
+    const initialData = {
+        labels: typeof labels !== 'undefined' ? labels : [],
+        values: typeof values !== 'undefined' ? values : []
+    };
+
+    console.log("Initializing task chart with:", initialData.labels, initialData.values);
+
+    // Create and store chart instance in a global variable for later updates
+    window.taskChart = new Chart(taskCtx, {
+        type: 'bar',
+        data: {
+            labels: initialData.labels,
+            datasets: [{
+                label: 'Completed Tasks',
+                data: initialData.values,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1,
+                borderRadius: 10
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#FFF',
+                        precision: 0   // Only show whole numbers
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#FFF'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#FFF'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            return `Completed Tasks: ${context.raw}`;
+                        }
+                    }
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+
+    // Initial data fetch
+    refreshTaskChartData();
+}
+
+// Refresh task chart data from API
+function refreshTaskChartData() {
+    if (!window.taskChart) return;
+
+    fetch('/api/analytics/tasks')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            updateTaskChart(data.labels, data.values);
+        })
+        .catch(error => {
+            console.error('Error fetching task chart data:', error);
+        });
+}
+
+// Update task chart with new data
+function updateTaskChart(newLabels, newValues) {
+    if (!window.taskChart) return;
+
+    window.taskChart.data.labels = newLabels;
+    window.taskChart.data.datasets[0].data = newValues;
+    window.taskChart.update();
+
+    console.log("Task chart updated with:", newLabels, newValues);
+}
+
+// Initialize the skills radar chart (for progress records)
+function initializeSkillsRadarChart() {
+    const skillsChartElement = document.getElementById('skillsChart');
+    if (!skillsChartElement) return;
+
+    const ctx = skillsChartElement.getContext('2d');
+
+    // Initial data (will be updated by API)
+    const initialData = {
+        labels: [],
+        values: []
+    };
+
+    // Create and store chart instance in a global variable for later updates
+    window.skillsRadarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: initialData.labels,
+            datasets: [{
+                label: 'Skill Level',
+                data: initialData.values,
+                backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                borderColor: 'rgba(79, 70, 229, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 3,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            const levelLabels = ['', 'Beginner', 'Intermediate', 'Advanced'];
+                            return levelLabels[value];
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 800
+            }
+        }
+    });
+
+    // Initial data fetch
+    refreshSkillsRadarChartData();
+}
+
+// Refresh skills radar chart data from API
+function refreshSkillsRadarChartData() {
+    if (!window.skillsRadarChart) return;
+
+    fetch('/api/analytics/progress')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            // Convert progress records to radar chart format
+            const labels = [];
+            const values = [];
+
+            const levels = {
+                'Beginner': 1,
+                'Intermediate': 2,
+                'Advanced': 3
+            };
+
+            data.records.forEach(record => {
+                labels.push(record.skill_area);
+                values.push(levels[record.level] || 0);
+            });
+
+            updateSkillsRadarChart(labels, values);
+        })
+        .catch(error => {
+            console.error('Error fetching skills radar chart data:', error);
+        });
+}
+
+// Update skills radar chart with new data
+function updateSkillsRadarChart(newLabels, newValues) {
+    if (!window.skillsRadarChart) return;
+
+    window.skillsRadarChart.data.labels = newLabels;
+    window.skillsRadarChart.data.datasets[0].data = newValues;
+    window.skillsRadarChart.update();
+
+    console.log("Skills radar chart updated with:", newLabels, newValues);
+}
+
+// UI AND UTILITY FUNCTIONS
+// Update task counts in the UI
+function updateTaskCounts() {
+    const tasksList = document.querySelector('.dashboard-tasks-list');
+    if (!tasksList) return;
+
+    const taskCount = tasksList.querySelectorAll('.border-l-4').length;
+    const taskCountDisplay = document.querySelector('.task-count');
+    if (taskCountDisplay) {
+        taskCountDisplay.textContent = `(${taskCount})`;
+    }
+}
+
+// Initialize tooltips for UI elements
+function initializeTooltips() {
+    const tooltips = document.querySelectorAll('[data-tooltip]');
+    if (typeof Tooltip === 'undefined' || !tooltips.length) return;
+
+    tooltips.forEach(tooltip => {
+        new Tooltip(tooltip, {
+            placement: 'top',
+            title: tooltip.getAttribute('data-tooltip')
+        });
+    });
+}
+
+// Set up event listeners for task status updates
+function setupTaskStatusListeners() {
+    const taskStatusButtons = document.querySelectorAll('.task-status-btn');
+    if (!taskStatusButtons.length) return;
+
+    taskStatusButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const taskId = this.getAttribute('data-task-id');
+            const newStatus = this.getAttribute('data-status');
+
+            fetch(`/api/tasks/${taskId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateTaskUI(taskId, newStatus, data.is_overdue);
+                    showNotification('Task status updated successfully', 'success');
+
+                    // Refresh charts after task update
+                    refreshTaskChartData();
+                } else {
+                    showNotification(data.message || 'Failed to update task status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating task status:', error);
+                showNotification('An error occurred while updating the task', 'error');
+            });
+        });
+    });
+}
+
+// Update UI elements after task status change
+function updateTaskUI(taskId, newStatus, isOverdue) {
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (!taskElement) return;
+
+    const taskItem = taskElement.closest('.border-l-4');
+    if (!taskItem) return;
+
+    // Update border color based on status
+    taskItem.className = taskItem.className.replace(/border-(green|red|blue|indigo)-500/, '');
+
+    if (newStatus === 'completed') {
+        taskItem.classList.add('border-green-500');
+    } else if (isOverdue) {
+        taskItem.classList.add('border-red-500');
+    } else {
+        taskItem.classList.add('border-blue-500');
+    }
+
+    // Update status text
+    const statusText = taskItem.querySelector('[class*="text-"]');
+    if (statusText) {
+        statusText.className = statusText.className.replace(/text-(green|red|gray)-500/, '');
+
+        if (newStatus === 'completed') {
+            statusText.classList.add('text-green-500');
+        } else if (isOverdue) {
+            statusText.classList.add('text-red-500');
+        } else {
+            statusText.classList.add('text-gray-500');
+        }
+
+        statusText.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+    }
+
+    // Update task count after status change
+    updateTaskCounts();
+}
+
+// Display notification messages
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } transition-opacity duration-300 z-50`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Fade out and remove after delay
+    setTimeout(() => {
+        notification.classList.add('opacity-0');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// MINI CHAT FUNCTIONALITY
+function initializeMiniChat() {
+    const miniChatForm = document.getElementById('mini-chat-form');
+    const miniMessageInput = document.getElementById('mini-message-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (!miniChatForm || !miniMessageInput || !chatMessages) return;
+
+    // Scroll to bottom of chat
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    miniChatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const message = miniMessageInput.value.trim();
+        if (!message) return;
+
+        // Add user message to chat
+        addMessageToMiniChat(message, true);
+
+        // Clear input
+        miniMessageInput.value = '';
+
+        // Show loading indicator
+        const loadingId = showMiniLoadingIndicator();
+
+        // Send message to backend
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading indicator
+            removeMiniLoadingIndicator(loadingId);
+
+            // Add bot response to chat
+            addMessageToMiniChat(data.response, false);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            removeMiniLoadingIndicator(loadingId);
+            addMessageToMiniChat('Sorry, there was an error processing your request.', false);
+        });
+    });
+
+    function addMessageToMiniChat(message, isUser) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex ${isUser ? 'justify-end' : ''} mb-3`;
+
+        if (isUser) {
+            messageDiv.innerHTML = `
+                <div class="bg-gray-700 text-white p-2 rounded-lg shadow-sm max-w-full text-sm">
+                    <p>${escapeHtml(message)}</p>
+                </div>
+                <div class="ml-2 flex-shrink-0 h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center text-gray-300">
+                    <i class="fas fa-user"></i>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ml-2 bg-gray-700 text-white p-2 rounded-lg shadow-sm max-w-full text-sm">
+                    <p>${formatMessage(message)}</p>
+                </div>
+            `;
+        }
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Keep only the last 6 messages visible (3 exchanges)
+        const allMessages = chatMessages.querySelectorAll('.flex.mb-3, .flex.mb-4');
+        if (allMessages.length > 7) { // Keep welcome message + 6 messages
+            allMessages[1].remove(); // Remove the oldest user message/response
+        }
+    }
+
+    function showMiniLoadingIndicator() {
+        const loadingId = 'loading-' + Date.now();
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = loadingId;
+        loadingDiv.className = 'flex mb-3';
+        loadingDiv.innerHTML = `
+            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="ml-2 bg-gray-700 p-2 rounded-lg shadow-sm">
+                <div class="flex space-x-2">
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return loadingId;
+    }
+
+    function removeMiniLoadingIndicator(loadingId) {
+        const loadingDiv = document.getElementById(loadingId);
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    function escapeHtml(html) {
+        const div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
+    }
+
+    function formatMessage(message) {
+        // Convert URLs to links
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return message.replace(urlRegex, function(url) {
+            return `<a href="${url}" class="text-indigo-400 hover:underline" target="_blank">${url}</a>`;
+        });
+    }
+}
+</script>
+{% endblock %}

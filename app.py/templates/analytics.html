@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-gray-100">Analytics Dashboard</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card: Completed Tasks by Users -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4 text-gray-100">Completed Tasks by Users</h2>
+            <div class="h-80">
+                <canvas id="taskChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Card: Skill Level Distribution -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4 text-gray-100">Skill Level Distribution</h2>
+            <div class="h-80">
+                <canvas id="skillChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const taskCtx = document.getElementById('taskChart').getContext('2d');
+        new Chart(taskCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ labels|tojson }},
+                datasets: [{
+                    label: 'Completed Tasks',
+                    data: {{ values|tojson }},
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#FFF',
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#FFF'
+                        }
+                    }
+                }
+            }
+        });
+
+        const skillCtx = document.getElementById('skillChart').getContext('2d');
+        new Chart(skillCtx, {
+            type: 'pie',
+            data: {
+                labels: {{ skill_labels|tojson }},
+                datasets: [{
+                    data: {{ skill_data|tojson }},
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)',
+                        'rgba(239, 68, 68, 0.7)',
+                        'rgba(139, 92, 246, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#FFF'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4" style="min-height: 100vh;">
+  <div class="card glass-card text-white shadow border-0 rounded-5 h-100 d-flex flex-column">
+
+    <!-- Header: Title + Search + Icons -->
+    <div class="glass-header py-4 px-4 rounded-top">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div class="flex-grow-1">
+          <h1 >📊 Progress of Student - {{ student.name or student.email or "Student" }}</h1>
+          <div class="input-group rounded search-glass">
+
+            <span class="input-group-text border-0 bg-transparent text-light"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control bg-transparent border-0 text-light"
+              placeholder="Search skill area or level">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="card-body px-0 pb-0 overflow-auto flex-grow-1">
+      {% if progress_reports %}
+      <div class="table-responsive w-100 h-100 px-3">
+        <table id="progressTable" class="table table-borderless table-dark align-middle mb-0 w-100">
+          <!-- Table Header -->
+          <thead class="table-light text-dark">
+            <tr>
+              <th class="ps-4 py-3 sortable" data-column="0">Skill Area</th>
+              <th class="py-3 sortable" data-column="1">Level</th>
+              <th class="py-3 sortable text-center" data-column="2">Date</th>
+              <th class="py-3 text-end pe-4 sortable" data-column="3">Last Updated</th>
+            </tr>
+          </thead>
+
+          <!-- Table Body -->
+          <tbody>
+            {% for report in progress_reports %}
+            <tr class="table-row-glass">
+              <td class="ps-4 py-3">{{ report.skill_area }}</td>
+              <td class="py-3">
+                {% if report.level == "Advanced" %}
+                <span class="badge bg-success bg-gradient">{{ report.level }}</span>
+                {% elif report.level == "Intermediate" %}
+                <span class="badge bg-info bg-gradient">{{ report.level }}</span>
+                {% else %}
+                <span class="badge bg-secondary bg-gradient">{{ report.level }}</span>
+                {% endif %}
+              </td>
+              <td class="py-3 text-center">{{ report.updated_at.strftime('%B %d, %Y') }}</td>
+              <td class="py-3 text-end pe-4 text-muted">{{ report.updated_at.strftime('%H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-warning m-4" role="alert">
+        No progress reports available for this student.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<!-- Styling -->
+<!--<style>-->
+<!--  body {-->
+<!--    background: linear-gradient(to right, #1f1f2e, #2a2b38);-->
+<!--    font-family: 'Segoe UI', sans-serif;-->
+<!--  }-->
+
+<!--  .glass-card {-->
+<!--    background: rgba(255, 255, 255, 0.06);-->
+<!--    backdrop-filter: blur(12px);-->
+<!--    border-radius: 1.5rem;-->
+<!--  }-->
+
+<!--  .glass-header {-->
+<!--    background: rgba(0, 0, 0, 0.3);-->
+<!--    backdrop-filter: blur(10px);-->
+<!--    border-bottom: 1px solid rgba(255, 255, 255, 0.1);-->
+<!--  }-->
+
+<!--  .btn-glass {-->
+<!--    border-radius: 12px;-->
+<!--    border: 1px solid rgba(255, 255, 255, 0.3);-->
+<!--    transition: all 0.3s ease;-->
+<!--  }-->
+
+<!--  .btn-glass:hover {-->
+<!--    background-color: rgba(255, 255, 255, 0.15);-->
+<!--  }-->
+
+<!--  .search-glass input {-->
+<!--    color: #fff !important;-->
+<!--  }-->
+
+<!--  /* Table Full Width Styling */-->
+<!--  table {-->
+<!--    border-spacing: 0 10px; /* Creates spacing between table rows */-->
+<!--    width: 100%;-->
+<!--  }-->
+
+<!--  thead th {-->
+<!--    background-color: #272727;-->
+<!--    text-align: center;-->
+<!--    font-size: 0.9rem;-->
+<!--    color: #e0e0e0;-->
+<!--    font-weight: bold;-->
+<!--  }-->
+
+<!--  tbody td {-->
+<!--    /* Padding and smooth background */-->
+<!--    padding: 10px 12px;-->
+<!--    background-color: rgba(255, 255, 255, 0.06);-->
+<!--    border-radius: 8px; /* Adds spacing effect */-->
+<!--    transition: background 0.3s ease;-->
+<!--    text-align: left;-->
+<!--  }-->
+
+<!--  tbody td.text-center {-->
+<!--    text-align: center;-->
+<!--  }-->
+
+<!--  tbody td.text-end {-->
+<!--    text-align: right;-->
+<!--  }-->
+
+<!--  tbody td:hover {-->
+<!--    background-color: rgba(255, 255, 255, 0.1); /* Hover Effect */-->
+<!--  }-->
+
+<!--  .badge {-->
+<!--    padding: 0.45em 0.7em;-->
+<!--    font-size: 0.85rem;-->
+<!--  }-->
+
+<!--  .table-responsive {-->
+<!--    padding: 15px;-->
+<!--  }-->
+
+<!--  /* Header Sortable */-->
+<!--  .sortable {-->
+<!--    cursor: pointer;-->
+<!--    position: relative;-->
+<!--    text-align: left;-->
+<!--  }-->
+
+<!--  .sortable::after {-->
+<!--    content: " ⇅";-->
+<!--    font-size: 0.75rem;-->
+<!--    color: #666;-->
+<!--    position: absolute;-->
+<!--    right: 5px;-->
+<!--  }-->
+
+<!--  .sorted-asc::after {-->
+<!--    content: " ▲";-->
+<!--  }-->
+
+<!--  .sorted-desc::after {-->
+<!--    content: " ▼";-->
+<!--  }-->
+<!--</style>-->
+<style>
+  body {
+    background: linear-gradient(to right, #1f1f2e, #2a2b38);
+    font-family: 'Segoe UI', sans-serif;
+  }
+  h1 {
+    font-size: 2.0rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border-radius: 1.5rem;
+  }
+
+  .glass-header {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-glass {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .btn-glass:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .search-glass input {
+    color: #fff !important;
+    font-size: 1rem;
+    padding: 10px;
+  }
+
+  /* Table Styling */
+  table {
+    width: 100%;
+    border-spacing: 0 14px;
+  }
+
+  thead th {
+    background-color: #272727;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #e0e0e0;
+    font-weight: 600;
+    padding: 16px 12px;
+  }
+
+  tbody td {
+    padding: 16px 14px;
+    background-color: rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    font-size: 1.05rem;
+    transition: background 0.3s ease;
+  }
+
+  tbody td.text-center {
+    text-align: center;
+  }
+
+  tbody td.text-end {
+    text-align: right;
+  }
+
+  tbody td:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .badge {
+    padding: 0.5em 0.75em;
+    font-size: 0.9rem;
+  }
+
+  .table-responsive {
+    padding: 25px;
+    font-size: 1rem;
+  }
+
+  .sortable {
+    cursor: pointer;
+    position: relative;
+    text-align: left;
+  }
+
+  .sortable::after {
+    content: " ⇅";
+    font-size: 0.8rem;
+    color: #999;
+    position: absolute;
+    right: 8px;
+  }
+
+  .sorted-asc::after {
+    content: " ▲";
+  }
+
+  .sorted-desc::after {
+    content: " ▼";
+  }
+</style>
+
+
+<!-- JS Sorting & Search -->
+<script>
+  // Search functionality
+  document.getElementById('searchInput').addEventListener('keyup', function () {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#progressTable tbody tr');
+    rows.forEach(row => {
+      const skill = row.cells[0].textContent.toLowerCase();
+      const level = row.cells[1].textContent.toLowerCase();
+      row.style.display = skill.includes(filter) || level.includes(filter) ? '' : 'none';
+    });
+  });
+
+  // Column sorting functionality
+  document.querySelectorAll('.sortable').forEach(header => {
+    header.addEventListener('click', function () {
+      const table = this.closest('table');
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const colIndex = this.dataset.column;
+      const asc = !this.classList.contains('sorted-asc');
+
+      rows.sort((a, b) => {
+        const aText = a.cells[colIndex].textContent.trim();
+        const bText = b.cells[colIndex].textContent.trim();
+        return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+      });
+
+      tbody.innerHTML = '';
+      rows.forEach(row => tbody.appendChild(row));
+
+      document.querySelectorAll('.sortable').forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+      this.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+    });
+  });
+</script>
+{% endblock %}

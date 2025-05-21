@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Report</title>
+</head>
+<body>
+    <h2>Generate Report</h2>
+
+    <form method="POST" action="{{ url_for('generate_report') }}">
+        <label for="report_type">Select Report Type:</label>
+        <select name="report_type" id="report_type" required>
+            <option value="" disabled selected>Select a report</option>
+            <option value="task_completion">Task Completion Report</option>
+            <option value="progress_summary">Progress Summary Report</option>
+        </select>
+
+        <br><br>
+        <button type="submit">Generate</button>
+    </form>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>

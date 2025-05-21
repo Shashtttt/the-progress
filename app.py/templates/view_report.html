@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}View Report{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 text-gray-200 shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-indigo-400">{{ report.report_type|replace('_', ' ')|title }} Report</h1>
+        <span class="text-sm text-gray-400">Generated on: {{ report.created_at.strftime('%B %d, %Y at %H:%M') }}</span>
+    </div>
+
+    <div class="border-t border-gray-700 pt-4">
+        {% if report.report_type == 'task_completion' %}
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h2 class="text-lg font-semibold mb-3">Overall Task Completion</h2>
+                    <div class="flex items-center justify-between mb-2">
+                        <span>Total Tasks:</span>
+                        <span class="font-bold">{{ report.content.total_tasks }}</span>
+                    </div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span>Completed Tasks:</span>
+                        <span class="font-bold">{{ report.content.completed_tasks }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Completion Rate:</span>
+                        <span class="font-bold text-indigo-400">{{ "%.1f"|format(report.content.completion_rate) }}%</span>
+                    </div>
+
+                    <div class="mt-4 bg-gray-700 rounded-full h-4 overflow-hidden">
+                        <div class="bg-indigo-500 h-4" style="width: {{ report.content.completion_rate }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h2 class="text-lg font-semibold mb-3">Tasks by Type</h2>
+                    {% for task_type, data in report.content.tasks_by_type.items() %}
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="capitalize">{{ task_type }}:</span>
+                                <span class="font-bold">{{ data.completed }}/{{ data.total }}</span>
+                            </div>
+                            <div class="bg-gray-700 rounded-full h-3 overflow-hidden">
+                                <div class="{% if task_type == 'technical' %}bg-blue-400{% elif task_type == 'aptitude' %}bg-green-400{% else %}bg-yellow-400{% endif %} h-3"
+                                     style="width: {{ data.rate }}%;"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h2 class="text-lg font-semibold mb-3">Insights</h2>
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <ul class="list-disc ml-6 space-y-2">
+                        {% if report.content.completion_rate < 30 %}
+                            <li>Your task completion rate is low. Consider breaking down tasks into smaller, more manageable pieces.</li>
+                        {% elif report.content.completion_rate < 70 %}
+                            <li>You're making steady progress on your tasks. Keep up the good work!</li>
+                        {% else %}
+                            <li>Excellent task completion rate! You're effectively managing your workload.</li>
+                        {% endif %}
+
+                        {% for task_type, data in report.content.tasks_by_type.items() %}
+                            {% if data.total > 0 %}
+                                {% if data.rate < 50 %}
+                                    <li>Consider prioritizing {{ task_type }} tasks as they have a lower completion rate.</li>
+                                {% elif data.rate == 100 and data.total >= 3 %}
+                                    <li>Great job completing all your {{ task_type }} tasks!</li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+        {% elif report.report_type == 'progress_summary' %}
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h2 class="text-lg font-semibold mb-3">Skill Level Distribution</h2>
+                    <div class="space-y-3">
+                        {% for level, count in report.content.levels.items() %}
+                            <div class="flex items-center justify-between">
+                                <span>{{ level }}:</span>
+                                <span class="font-bold">{{ count }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% set total = report.content.levels.Beginner + report.content.levels.Intermediate + report.content.levels.Advanced %}
+                    {% if total > 0 %}
+                        <div class="mt-4 flex h-8 rounded-md overflow-hidden">
+                            {% if report.content.levels.Beginner > 0 %}
+                                <div class="bg-yellow-400" style="width: {{ (report.content.levels.Beginner / total * 100)|round }}%;"></div>
+                            {% endif %}
+                            {% if report.content.levels.Intermediate > 0 %}
+                                <div class="bg-blue-400" style="width: {{ (report.content.levels.Intermediate / total * 100)|round }}%;"></div>
+                            {% endif %}
+                            {% if report.content.levels.Advanced > 0 %}
+                                <div class="bg-green-400" style="width: {{ (report.content.levels.Advanced / total * 100)|round }}%;"></div>
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-yellow-500">Beginner</span>
+                            <span class="text-blue-500">Intermediate</span>
+                            <span class="text-green-500">Advanced</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h2 class="text-lg font-semibold mb-3">Skills Breakdown</h2>
+                    {% if report.content.skills %}
+                        <div class="space-y-3">
+                            {% for skill, level in report.content.skills.items() %}
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span>{{ skill }}</span>
+                                        <span class="font-semibold
+                                            {% if level == 'Beginner' %}text-yellow-500
+                                            {% elif level == 'Intermediate' %}text-blue-500
+                                            {% else %}text-green-500{% endif %}">
+                                            {{ level }}
+                                        </span>
+                                    </div>
+                                    <div class="bg-gray-700 rounded-full h-2 overflow-hidden">
+                                        <div class="{% if level == 'Beginner' %}bg-yellow-400 w-1/3
+                                                     {% elif level == 'Intermediate' %}bg-blue-400 w-2/3
+                                                     {% else %}bg-green-400 w-full{% endif %} h-2">
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-400 italic">No skills have been recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h2 class="text-lg font-semibold mb-3">Growth Recommendations</h2>
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <ul class="list-disc ml-6 space-y-2">
+                        {% set beginner_count = report.content.levels.Beginner %}
+                        {% set intermediate_count = report.content.levels.Intermediate %}
+                        {% set advanced_count = report.content.levels.Advanced %}
+
+                        {% if beginner_count > intermediate_count and beginner_count > advanced_count %}
+                            <li>You have many skills at the beginner level. Consider focusing on one or two to advance to intermediate.</li>
+                        {% endif %}
+
+                        {% if intermediate_count > 0 and advanced_count == 0 %}
+                            <li>Work on advancing your intermediate skills to reach advanced level proficiency.</li>
+                        {% endif %}
+
+                        {% if advanced_count > 0 %}
+                            <li>Great job reaching advanced level in some skills! Consider mentoring others in these areas.</li>
+                        {% endif %}
+
+                        {% if report.content.skills|length < 3 %}
+                            <li>Consider diversifying your skill set by adding more skills to track.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <p class="text-gray-300">Report data format not recognized. Please contact support.</p>
+                <pre class="mt-4 bg-gray-800 p-4 rounded text-gray-400 text-sm overflow-auto">{{ report.content|tojson(indent=2) }}</pre>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-6 flex justify-between">
+        <a href="{{ url_for('reports') }}" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">
+            Back to Reports
+        </a>
+
+        <button onclick="window.print()" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-2 px-4 rounded flex items-center">
+            <i class="fas fa-print mr-2"></i> Print Report
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        nav, footer, .flash-messages, button {
+            display: none !important;
+        }
+        body {
+            background-color: black;
+        }
+        .bg-gray-800 {
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}

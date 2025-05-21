@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="p-8 bg-gray-100 text-gray-900">
+  <h1 class="text-3xl font-bold mb-6">Admin Panel</h1>
+
+  <!-- Users Section -->
+  <div class="mb-10">
+    <h2 class="text-2xl font-semibold mb-4">Users</h2>
+    <table class="w-full bg-white rounded shadow">
+      <thead>
+        <tr class="bg-gray-200 text-left">
+          <th class="p-3">Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr class="border-t">
+          <td class="p-3">{{ user.name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role }}</td>
+          <td>
+            <form action="/admin/delete_user/{{ user.id }}" method="POST" class="inline">
+              <button class="text-red-600 hover:underline">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tasks Section -->
+  <div>
+    <h2 class="text-2xl font-semibold mb-4">Tasks</h2>
+    <table class="w-full bg-white rounded shadow">
+      <thead>
+        <tr class="bg-gray-200 text-left">
+          <th class="p-3">Title</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>User ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+        <tr class="border-t">
+          <td class="p-3">{{ task.title }}</td>
+          <td>{{ task.type }}</td>
+          <td>{{ task.status }}</td>
+          <td>{{ task.user_id }}</td>
+          <td>
+            <form action="/admin/delete_task/{{ task.id }}" method="POST" class="inline">
+              <button class="text-red-600 hover:underline">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

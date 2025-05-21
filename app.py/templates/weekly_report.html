@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    h1{
+        text-color: white;
+    }
+</style>
+<div class="container mt-4 text-gray-900 dark:text-white">
+    <div class="mb-6">
+
+            <h1 class="text-3xl text-white font-bold mb-1 ">Weekly Progress Report</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-300">{{ start_date.strftime('%B %d, %Y') }} - {{ end_date.strftime('%B %d, %Y') }}</p>
+        <form action="{{ url_for('generate_weekly_report') }}" method="post" class="mt-4">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
+                Save This Report
+            </button>
+        </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {% set cards = [
+            ('Completed Tasks', total_completed, 'bg-green-500 hover:bg-green-600', 'Complete your goals!'),
+            ('New Tasks', total_added, 'bg-blue-500 hover:bg-blue-600', 'Keep adding value!'),
+            ('Overdue Tasks', overdue_tasks|length, 'bg-red-500 hover:bg-red-600', 'Stay ahead of deadlines!'),
+            ('Productivity Score', productivity_score, 'bg-purple-500 hover:bg-purple-600', 'Be your best self!'),
+        ] %}
+        {% for title, value, color, tooltip in cards %}
+        <div
+            class="rounded-lg p-4 shadow-md bg-gray 500 dark:bg-gray-800 hover:shadow-lg transition-transform hover:scale-105 cursor-pointer"
+            title="{{ tooltip }}">
+            <h5 class="text-center text-sm font-semibold mb-2">{{ title }}</h5>
+            <h2 class="text-4xl font-bold text-center">{{ value }}</h2>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Weekly Charts -->
+<!-- Weekly Charts -->
+<div class="grid md:grid-cols-3 gap-4 mb-6">
+    <!-- Weekly Task Completion Chart -->
+    <div class="md:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg">
+        <h5 class="font-semibold mb-3 text-gray-900 dark:text-white">Weekly Task Completion</h5>
+        <canvas id="weeklyChart" height="200"></canvas>
+    </div>
+
+    <!-- Task Completion by Type Chart -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg">
+        <h5 class="font-semibold mb-3 text-gray-900 dark:text-white">Task Completion by Type</h5>
+        <canvas id="typeChart" height="200"></canvas>
+    </div>
+</div>
+
+    <!-- Task Lists -->
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+        {% for title, task_list, color, date_key in [
+            ('Completed This Week', completed_tasks, 'bg-green-600', 'completed_at'),
+            ('Added This Week', new_tasks, 'bg-blue-600', 'created_at')
+        ] %}
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg">
+            <h5 class="font-semibold mb-3">{{ title }}</h5>
+            {% if task_list %}
+            <ul>
+                {% for task in task_list %}
+                <li
+                    class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                    <div>
+                        <span class="inline-block {{ color }} text-white text-xs px-2 py-1 rounded mr-2">{{ task.type }}</span>
+                        {{ task.title }}
+                    </div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ task[date_key].strftime('%b %d, %Y') }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">No tasks for this section.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Progress Updates and Upcoming -->
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+        {% for title, list_data, key1, key2 in [
+            ('Progress Updates', progress_updates, 'skill_area', 'updated_at'),
+            ('Upcoming Tasks', upcoming_tasks, 'title', 'due_date')
+        ] %}
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg">
+            <h5 class="font-semibold mb-3">{{ title }}</h5>
+            {% if list_data %}
+            <ul>
+                {% for item in list_data %}
+                <li
+                    class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                    <div>
+                        <strong>{{ item[key1] }}</strong>{% if item.level is defined %}: {{ item.level }}{% endif %}
+                    </div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ item[key2].strftime('%b %d, %Y') }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">No {{ title.lower() }}.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Areas for Improvement -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6 hover:shadow-lg">
+        <h5 class="font-semibold mb-3">Areas for Improvement</h5>
+        {% if improvement_areas %}
+        <ul>
+            {% for area in improvement_areas %}
+            <li class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                <span><strong>{{ area.type|capitalize }}</strong></span>
+                <span class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded">{{ area.count }} pending tasks</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">No major improvement areas identified this week.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // Weekly Line Chart
+    const weeklyChart = new Chart(document.getElementById('weeklyChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: {{ days_of_week | tojson }},
+            datasets: [{
+                label: 'Tasks Completed',
+                data: {{ daily_completion | tojson }},
+                backgroundColor: prefersDark ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.3)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: prefersDark ? '#fff' : '#000' } }
+            },
+            scales: {
+                x: { ticks: { color: prefersDark ? '#ccc' : '#333' } },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: prefersDark ? '#ccc' : '#333',
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Doughnut Chart for Completion by Type
+    const typeChart = new Chart(document.getElementById('typeChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Technical', 'Aptitude', 'Soft Skills'],
+            datasets: [{
+                data: [
+                    {{ completion_by_type.get('technical', 0) }},
+                    {{ completion_by_type.get('aptitude', 0) }},
+                    {{ completion_by_type.get('softskill', 0) }}
+                ],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: prefersDark ? '#fff' : '#000' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

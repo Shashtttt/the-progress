@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 bg-gray-900 text-gray-100 min-h-screen">
+  <h1 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-3">Reports</h1>
+
+  <!-- Generate Report Section -->
+  <div class="bg-gray-800 shadow-md rounded-lg mb-10 p-6">
+    <h2 class="text-2xl font-semibold mb-4">Generate New Report</h2>
+    <form action="{{ url_for('generate_report') }}" method="POST" class="space-y-4">
+      <div>
+        <label for="report_type" class="block text-gray-400 font-medium mb-2">Select Report Type</label>
+        <select id="report_type" name="report_type" required
+                class="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white focus:ring-2 focus:ring-blue-500">
+          <option value="" disabled selected>Select a report type</option>
+          <option value="task_completion">Task Completion</option>
+          <option value="progress_summary">Progress Summary</option>
+        </select>
+      </div>
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-md font-medium transition shadow-sm">
+        Generate Report
+      </button>
+    </form>
+  </div>
+
+  <!-- Reports List Section -->
+  <div class="mb-20">
+    <h2 class="text-2xl font-semibold mb-4">Your Reports</h2>
+    {% if reports %}
+    <div class="grid md:grid-cols-2 gap-4">
+      {% for report in reports %}
+      <a href="{{ url_for('view_report', report_id=report.id) }}"
+         class="block bg-gray-800 border border-gray-700 rounded-lg p-5 shadow hover:bg-gray-700 transition">
+        <div class="flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-blue-400 capitalize">
+            {{ report.report_type.replace('_', ' ') }}
+          </h3>
+          <span class="text-sm text-gray-500">{{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="bg-gray-700 text-gray-300 px-4 py-3 rounded-lg">
+      You haven't generated any reports yet.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Chatbot Floating Panel -->
+<div class="fixed bottom-6 right-6 z-50">
+  <div id="chatbot-container"
+       class="hidden flex-col bg-gray-800 border border-gray-700 rounded-lg shadow-lg w-80 max-h-[500px] overflow-hidden">
+    <div class="flex justify-between items-center px-4 py-2 bg-blue-600 text-white font-semibold">
+      <span>Report Assistant</span>
+      <button id="chatbot-close" class="text-white text-lg"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-3" id="chatbot-messages">
+      <div class="bg-gray-700 text-white p-3 rounded-md">
+        Hi! I'm your report assistant.
+        <ul class="list-disc pl-5">
+          <li>Explain report types</li>
+          <li>Help generate reports</li>
+          <li>Summarize your progress</li>
+        </ul>
+        Ask me anything!
+      </div>
+    </div>
+    <div class="p-3 border-t border-gray-700 flex gap-2">
+      <input type="text" id="chatbot-input-field"
+             placeholder="Ask about your reports..."
+             class="flex-1 px-3 py-2 rounded-full border border-gray-600 bg-gray-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button id="chatbot-send" class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toggle Button -->
+  <button id="chatbot-toggle"
+          class="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-500 transition">
+    <i class="fas fa-comment text-xl"></i>
+  </button>
+</div>
+
+<!-- Chatbot JavaScript -->
+<script>
+  const chatbotToggle = document.getElementById("chatbot-toggle");
+  const chatbotContainer = document.getElementById("chatbot-container");
+  const chatbotClose = document.getElementById("chatbot-close");
+  const chatbotInputField = document.getElementById("chatbot-input-field");
+  const chatbotSendButton = document.getElementById("chatbot-send");
+  const chatbotMessages = document.getElementById("chatbot-messages");
+
+  chatbotToggle.addEventListener("click", () => {
+    chatbotContainer.classList.remove("hidden");
+    chatbotToggle.classList.add("hidden");
+  });
+
+  chatbotClose.addEventListener("click", () => {
+    chatbotContainer.classList.add("hidden");
+    chatbotToggle.classList.remove("hidden");
+  });
+
+  chatbotSendButton.addEventListener("click", () => {
+    const userInput = chatbotInputField.value.trim();
+    if (userInput) {
+      const userMessage = document.createElement("div");
+      userMessage.className = "bg-blue-600 text-white p-3 rounded-md self-end mb-1";
+      userMessage.textContent = userInput;
+      chatbotMessages.appendChild(userMessage);
+
+      setTimeout(() => {
+        const botReply = document.createElement("div");
+        botReply.className = "bg-gray-700 text-white p-3 rounded-md self-start mb-1";
+        botReply.textContent = `You asked: "${userInput}". I'm here to help you with that!`;
+        chatbotMessages.appendChild(botReply);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+
+        const timestamp = document.createElement("div");
+        timestamp.className = "text-xs text-gray-400 text-right mt-1";
+        timestamp.textContent = new Date().toLocaleString();
+        botReply.appendChild(timestamp);
+      }, 600);
+
+      chatbotInputField.value = "";
+    }
+  });
+
+  chatbotInputField.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      chatbotSendButton.click();
+    }
+  });
+</script>
+
+<!-- Styling for smooth scrolling on dark theme -->
+<style>
+  #chatbot-messages::-webkit-scrollbar {
+    width: 8px;
+  }
+  #chatbot-messages::-webkit-scrollbar-track {
+    background: #1f1f1f;
+  }
+  #chatbot-messages::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 10px;
+  }
+</style>
+{% endblock %}

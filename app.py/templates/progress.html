@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Tracking{% endblock %}
+
+{% block content %}
+<div class="container max-w-6xl mx-auto mt-8 px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-white">Progress Tracking</h1>
+        <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition">Back to Dashboard</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Column -->
+        <div class="space-y-6">
+            <!-- Progress Entry Form -->
+            <div class="bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Track New Skill</h2>
+                <form action="{{ url_for('progress') }}" method="POST" id="progress-form">
+                    <div class="mb-4">
+                        <label for="skill_area" class="block text-sm font-medium text-gray-300 mb-1">Skill Area</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                               id="skill_area" name="skill_area" placeholder="e.g. Python, Public Speaking" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="level" class="block text-sm font-medium text-gray-300 mb-1">Current Level</label>
+                        <select class="w-full px-3 py-2 border border-gray-700 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                id="level" name="level" required>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        Save Progress
+                    </button>
+                </form>
+            </div>
+
+            <!-- Skills Summary -->
+            <div class="bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Skills Summary</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Beginner:</span>
+                        <span class="font-medium text-white">{{ progress_records|selectattr('level', 'equalto', 'Beginner')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Intermediate:</span>
+                        <span class="font-medium text-white">{{ progress_records|selectattr('level', 'equalto', 'Intermediate')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Advanced:</span>
+                        <span class="font-medium text-white">{{ progress_records|selectattr('level', 'equalto', 'Advanced')|list|length }}</span>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2 mt-2">
+                        <div class="flex justify-between font-medium text-white">
+                            <span>Total Skills:</span>
+                            <span>{{ progress_records|length }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="{{ url_for('generate_report', report_type='progress_summary') }}" class="block w-full px-4 py-2 bg-gray-600 text-white text-center rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+
+            {% if progress_records %}
+            <!-- Progress Visualization -->
+            <div class="bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Progress Visualization</h2>
+                <canvas id="skillsChart" height="220"></canvas>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Progress Records Display -->
+        <div class="bg-gray-800 rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-white">Your Skills Progress</h2>
+                <div>
+                    <select id="sort-skills" class="px-3 py-1 border border-gray-600 rounded-md bg-gray-700 text-white focus:outline-none">
+                        <option value="name">Sort by Name</option>
+                        <option value="level">Sort by Level</option>
+                        <option value="recent">Sort by Recent</option>
+                    </select>
+                </div>
+            </div>
+
+            {% if progress_records %}
+                <div class="space-y-4 overflow-y-auto max-h-[30rem]" id="skills-container">
+                    {% for record in progress_records %}
+                        <div class="skill-item border rounded-lg p-4 flex justify-between items-center transition hover:bg-gray-700">
+                            <div>
+                                <h3 class="font-medium text-white">{{ record.skill_area }}</h3>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span class="px-2.5 py-1 text-xs rounded-full
+                                        {% if record.level == 'Beginner' %}
+                                            bg-blue-100 text-blue-800
+                                        {% elif record.level == 'Intermediate' %}
+                                            bg-yellow-100 text-yellow-800
+                                        {% else %}
+                                            bg-green-100 text-green-800
+                                        {% endif %}">
+                                        {{ record.level }}
+                                    </span>
+                                    <span class="px-2 py-1 text-xs text-gray-400">
+                                        Updated: {{ record.updated_at.strftime('%b %d, %Y') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="edit-skill text-blue-400 hover:text-blue-600"
+                                        data-skill="{{ record.skill_area }}"
+                                        data-level="{{ record.level }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <p class="mt-2 text-gray-400">You haven't tracked any skills yet. Start by adding a skill above!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Helper function to update the progress form from chat
+    function updateProgressFromChat(skill, level) {
+        document.getElementById('skill_area').value = skill;
+        document.getElementById('level').value = level;
+        document.getElementById('progress-form').submit();
+    }
+
+    // Check for chat commands from localStorage every second
+    setInterval(function() {
+        const chatCommand = localStorage.getItem('progressCommand');
+        if (chatCommand) {
+            try {
+                const commandData = JSON.parse(chatCommand);
+                updateProgressFromChat(commandData.skill, commandData.level);
+                // Clear the command after processing
+                localStorage.removeItem('progressCommand');
+            } catch (e) {
+                console.error("Error processing chat command:", e);
+            }
+        }
+    }, 1000);
+
+    // Edit skill functionality
+    document.querySelectorAll('.edit-skill').forEach(button => {
+        button.addEventListener('click', function() {
+            const skill = this.dataset.skill;
+            const level = this.dataset.level;
+
+            // Fill the form with the skill data
+            document.getElementById('skill_area').value = skill;
+            document.getElementById('level').value = level;
+
+            // Scroll to form and focus
+            document.getElementById('skill_area').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('skill_area').focus();
+        });
+    });
+
+    // Sort skills
+    document.getElementById('sort-skills').addEventListener('change', function() {
+        const sortType = this.value;
+        const skillsContainer = document.getElementById('skills-container');
+        const skillItems = Array.from(skillsContainer.querySelectorAll('.skill-item'));
+
+        skillItems.sort((a, b) => {
+            if (sortType === 'name') {
+                const nameA = a.querySelector('h3').textContent.toLowerCase();
+                const nameB = b.querySelector('h3').textContent.toLowerCase();
+                return nameA.localeCompare(nameB);
+            } else if (sortType === 'level') {
+                const levelMap = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+                const levelA = a.querySelector('.rounded-full').textContent.trim();
+                const levelB = b.querySelector('.rounded-full').textContent.trim();
+                return levelMap[levelB] - levelMap[levelA];
+            } else if (sortType === 'recent') {
+                const dateA = a.querySelector('.text-gray-400').textContent.replace('Updated: ', '');
+                const dateB = b.querySelector('.text-gray-400').textContent.replace('Updated: ', '');
+                return new Date(dateB) - new Date(dateA);
+            }
+            return 0;
+        });
+
+        skillItems.forEach(item => skillsContainer.appendChild(item));
+    });
+
+    {% if progress_records %}
+    // Chart.js visualization
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('skillsChart').getContext('2d');
+
+        // Count skills by level
+        const beginnerCount = {{ progress_records|selectattr('level', 'equalto', 'Beginner')|list|length }};
+        const intermediateCount = {{ progress_records|selectattr('level', 'equalto', 'Intermediate')|list|length }};
+        const advancedCount = {{ progress_records|selectattr('level', 'equalto', 'Advanced')|list|length }};
+
+        // Load Chart.js from CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js';
+        script.onload = function() {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Beginner', 'Intermediate', 'Advanced'],
+                    datasets: [{
+                        data: [beginnerCount, intermediateCount, advancedCount],
+                        backgroundColor: ['rgba(59, 130, 246, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(16, 185, 129, 0.6)'],
+                        borderColor: ['rgb(59, 130, 246)', 'rgb(245, 158, 11)', 'rgb(16, 185, 129)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#fff'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Skill Level Distribution',
+                            color: '#fff'
+                        }
+                    }
+                }
+            });
+        };
+        document.head.appendChild(script);
+    });
+    {% endif %}
+</script>
+
+<script>
+// Script to handle chat integration - add to your base template or chat.js file
+document.addEventListener('DOMContentLoaded', function() {
+    // This function should be called from your chat.js when a progress command is detected
+    window.handleProgressCommand = function(skill, level) {
+        // Store the command in localStorage
+        const commandData = {
+            skill: skill,
+            level: level
+        };
+        localStorage.setItem('progressCommand', JSON.stringify(commandData));
+
+        // If we're already on the progress page, process immediately
+        if (window.location.pathname.includes('/progress')) {
+            updateProgressFromChat(skill, level);
+        } else {
+            // Otherwise, notify the user
+            alert(`Progress update queued: ${skill} - ${level}. Navigate to the Progress page to apply.`);
+        }
+    };
+});
+
+// Add this to your chat.js file
+function processChatMessage(message) {
+    // Check if message contains progress update command
+    const progressRegex = /update\s+(?:my\s+)?(?:progress|skill)\s+(?:for\s+)?([a-zA-Z\s]+)\s+(?:to|as)\s+(beginner|intermediate|advanced)/i;
+    const match = message.match(progressRegex);
+
+    if (match) {
+        const skill = match[1].trim();
+        const level = match[2].charAt(0).toUpperCase() + match[2].slice(1).toLowerCase();
+        window.handleProgressCommand(skill, level);
+        return true;
+    }
+    return false;
+}
+
+// You'll need to call this function when processing chat messages
+// For example, in your chat send button event listener:
+//
+// document.querySelector('#send-chat').addEventListener('click', function() {
+//     const message = document.querySelector('#chat-input').value;
+//     if (processChatMessage(message)) {
+//         // Add system message about progress update
+//         addChatMessage('System', 'Processing progress update command...');
+//     }
+//     // Continue with normal chat processing...
+// });
+
+</script>
+{% endblock %}

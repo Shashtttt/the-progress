@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-6 text-light" style="background-color: #0b1120; border-radius: 12px;">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-5">
+    <div>
+      <h1 class="display-5 fw-bold text-primary">
+        <i class="bi bi-mortarboard-fill me-2"></i>  Student Dashboard
+      </h1>
+      <p class="lead text-muted mb-0">
+        Manage student records, track progress, and stay updated with real-time data.
+      </p>
+    </div>
+    {% if students %}
+    <div class="mt-3 mt-md-0">
+      <div class="badge bg-success px-4 py-2 fs-5 shadow-sm">
+        Total Students: {{ students|length }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Search + Sort -->
+  <div class="card bg-dark border-light shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-4 align-items-end">
+        <div class="col-lg-8">
+          <label for="searchInput" class="form-label text-light fw-semibold">
+            <i class="bi bi-search me-1"></i> Search Students
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-primary text-light border-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="searchInput" class="form-control bg-dark text-light border-0" placeholder="Search by ID, Name, or Email">
+            <button class="btn btn-outline-danger" id="clearSearchBtn">Clear</button>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <label for="sortSelect" class="form-label text-light fw-semibold">
+            <i class="bi bi-sort-alpha-down me-1"></i> </label>
+          <div></div>
+          <select id="sortSelect" class="form-select bg-dark text-light border-primary">
+            <option value="id_asc">ID (Ascending)</option>
+            <option value="id_desc">ID (Descending)</option>
+            <option value="name_asc" selected>Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+            <option value="email_asc">Email (A-Z)</option>
+            <option value="email_desc">Email (Z-A)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Table -->
+  <div class="card bg-dark border-light shadow">
+    <div class="card-header bg-secondary text-light d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i> Student Directory</h5>
+      <small id="resultCount" class="fst-italic text-light"></small>
+    </div>
+    <div class="card-body p-0">
+      {% if students %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle text-center table-bordered mb-0">
+          <thead class="table-primary text-dark">
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            {% for student in students %}
+            <tr class="{% if loop.index is even %}bg-dark{% else %}bg-secondary{% endif %}">
+              <td class="fw-bold text-primary">{{ student.id }}</td>
+              <td>
+  <div class="d-flex align-items-center gap-1">
+      <!-- Avatar Circle with no first letter -->
+    </div>
+    <span class="fw-semibold">{{ student.name or "Not Available" }}</span>
+
+</td>
+
+              <td>
+                <a href="mailto:{{ student.email }}" class="text-decoration-none text-primary fw-semibold">
+                  <i class="bi bi-envelope-fill"></i> {{ student.email }}
+                </a>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <a href="{{ url_for('student_progress', student_id=student.id) }}" class="btn btn-sm btn-outline-primary fw-bold">
+                    <i class="bi bi-bar-chart-fill me-1"></i> Progress
+                  </a>
+                  <button
+                    class="btn btn-sm btn-outline-light fw-bold"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#details-{{ student.id }}"
+                    aria-expanded="false"
+                    aria-controls="details-{{ student.id }}"
+                  >
+                    <i class="bi bi-info-circle-fill me-1"></i> Details
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Collapsible Details -->
+            <tr id="details-{{ student.id }}" class="collapse bg-light text-dark">
+              <td colspan="4" class="p-4">
+                <h6 class="text-dark fw-bold mb-3">Student Details</h6>
+                <ul class="list-unstyled mb-3">
+                  <li><strong>ID:</strong> {{ student.id }}</li>
+                  <li><strong>Email:</strong> {{ student.email }}</li>
+                  <li><strong>Full Name:</strong> {{ student.name or "Not Specified" }}</li>
+                </ul>
+                <div class="d-flex gap-3">
+                  <a href="{{ url_for('student_progress', student_id=student.id) }}" class="btn btn-primary btn-sm fw-bold">
+                    View Full Progress
+                  </a>
+                  <a href="mailto:{{ student.email }}" class="btn btn-outline-dark btn-sm fw-bold">
+                    Contact Student
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-secondary text-center p-5" role="alert">
+        <i class="bi bi-emoji-frown-fill fs-4"></i> No records available!
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .collapse {
+    transition: all 0.3s ease-in-out;
+  }
+
+  body {
+    background-color: #0b1120;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+
+  .dashboard-container {
+    background-color: #111827;
+    padding: 20px;
+    border-radius: 8px;
+  }
+
+  h1 {
+    margin-bottom: 10px;
+    font-size: 2.0rem;
+  }
+
+  .controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  #searchInput {
+    padding: 10px;
+    background-color: #1e1e2f;
+    color: #fff;
+    border: 2px solid #3b82f6;
+    border-radius: 5px 0 0 5px;
+    outline: none;
+    width: 250px;
+  }
+
+  #searchInput::placeholder {
+    color: #ccc;
+  }
+
+  #clearSearchBtn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+  }
+
+  #clearSearchBtn:hover {
+    background-color: #c82333;
+  }
+
+  #sortSelect {
+    padding: 10px;
+    background-color: #1e1e2f;
+    color: #fff;
+    border: 2px solid #3b82f6;
+    border-radius: 5px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  th {
+    background-color: #3b82f6;
+    color: #000;
+    text-align: left;
+    padding: 12px;
+  }
+
+  tr:nth-child(even) {
+    background-color: #2d2f42;
+  }
+
+  tr:nth-child(odd) {
+    background-color: #1e1e2f;
+  }
+
+  td {
+    padding: 12px;
+    vertical-align: middle;
+  }
+
+  td a {
+    color: #3b82f6;
+    text-decoration: none;
+  }
+
+  td a:hover {
+    text-decoration: underline;
+  }
+
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #3b82f6;
+    color: #1e1e2f;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+  }
+
+  .student-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .small-label {
+    font-size: 0.9em;
+    color: #ccc;
+  }
+</style>
+
+<script>
+  document.getElementById("searchInput").addEventListener("input", function () {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#studentTableBody tr:not(.collapse)");
+    let count = 0;
+    rows.forEach(row => {
+      const text = row.innerText.toLowerCase();
+      const match = text.includes(filter);
+      row.style.display = match ? "" : "none";
+      if (match) count++;
+    });
+    document.getElementById("resultCount").textContent = count + " result(s) found";
+  });
+
+  document.getElementById("clearSearchBtn").addEventListener("click", function () {
+    const input = document.getElementById("searchInput");
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+  });
+</script>
+{% endblock %}

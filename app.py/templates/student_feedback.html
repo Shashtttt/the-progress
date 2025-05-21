@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-8 p-4 bg-gray-50 shadow-md rounded-lg">
+    <h1 class="text-3xl font-bold text-indigo-700 mb-6">Feedback</h1>
+
+    {% if current_user.role == 'mentor' %}
+        <!-- Mentor View -->
+        <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Provide Feedback to Student</h2>
+            <form action="{{ url_for('feedback') }}" method="POST">
+                <div class="mb-4">
+                    <label for="student_id" class="block text-sm font-medium text-gray-700">Select Student</label>
+                    <select class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            id="student_id" name="student_id" required>
+                        <option value="" selected disabled>Choose a student</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}">{{ student.name }} ({{ student.email }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="message" class="block text-sm font-medium text-gray-700">Feedback Message</label>
+                    <textarea
+                        class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        id="message" name="message" rows="4" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                    <div class="flex space-x-2">
+                        {% for i in range(1, 6) %}
+                        <div class="flex items-center space-x-1">
+                            <input type="radio" name="rating" id="rating{{ i }}" value="{{ i }}"
+                                {% if i == 3 %}checked{% endif %}
+                                class="hidden peer">
+                            <label for="rating{{ i }}"
+                                   class="cursor-pointer text-center rounded-full w-10 h-10 flex justify-center items-center bg-gray-100 peer-checked:bg-indigo-500 peer-checked:text-white transition">{{ i }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="submit"
+                        class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    Submit Feedback
+                </button>
+            </form>
+        </div>
+
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Previously Submitted Feedback</h2>
+
+        {% if feedbacks %}
+            <div class="space-y-4">
+                {% for feedback in feedbacks %}
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <h5 class="text-lg font-semibold text-gray-800">To: {{ feedback.student.name }}</h5>
+                            <small class="text-gray-500">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="text-gray-700 mb-2">{{ feedback.message }}</p>
+                        <div class="flex items-center">
+                            <span class="text-gray-600 font-medium mr-2">Rating:</span>
+                            {% for i in range(1, 6) %}
+                                <i class="bi {% if i <= feedback.rating %}bi-star-fill text-yellow-400{% else %}bi-star text-gray-300{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-blue-50 border-l-4 border-blue-400 text-blue-700 p-4 rounded-lg">
+                You haven't provided any feedback yet.
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Student View -->
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Feedback from Mentors</h2>
+
+        {% if feedbacks %}
+            <div class="space-y-4">
+                {% for feedback in feedbacks %}
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <h5 class="text-lg font-semibold text-gray-800">From: {{ feedback.mentor.name }}</h5>
+                            <small class="text-gray-500">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="text-gray-700 mb-2">{{ feedback.message }}</p>
+                        <div class="flex items-center">
+                            <span class="text-gray-600 font-medium mr-2">Rating:</span>
+                            {% for i in range(1, 6) %}
+                                <i class="bi {% if i <= feedback.rating %}bi-star-fill text-yellow-400{% else %}bi-star text-gray-300{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-blue-50 border-l-4 border-blue-400 text-blue-700 p-4 rounded-lg">
+                You haven't received any feedback yet.
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
