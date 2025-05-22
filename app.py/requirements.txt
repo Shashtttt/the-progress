@@ -1,0 +1,95 @@
+
+
+import os from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash from flask_sqlalchemy import SQLAlchemy from flask_migrate import Migrate from werkzeug.security import generate_password_hash, check_password_hash from flask_login import LoginManager, UserMixin,
+
+
+
+Edit
+I'll analyze your Flask application and create a comprehensive requirements.txt file based on all the dependencies I can identify from your code.
+
+
+requirements.txt
+Code 
+Here's the requirements.txt file for your Flask application. I've analyzed your code and included all the necessary dependencies:
+
+Key Dependencies Explained:
+Flask Ecosystem:
+Flask - Main web framework
+Werkzeug - WSGI utility library (Flask dependency)
+Database:
+Flask-SQLAlchemy - ORM for database operations
+Flask-Migrate - Database migration support
+psycopg2-binary - PostgreSQL adapter (since you're using PostgreSQL)
+Authentication:
+Flask-Login - User session management
+AI Integration:
+google-generativeai - For Gemini AI integration
+Configuration:
+python-dotenv - Environment variable management
+Production Ready:
+gunicorn - WSGI HTTP Server for production deployment
+cryptography - Additional security features
+Installation Instructions:
+bash
+# Create a virtual environment (recommended)
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install all dependencies
+pip install -r requirements.txt
+Environment Variables Setup:
+Make sure to create a .env file in your project root with:
+
+env
+SECRET_KEY=your-secret-key-here
+GOOGLE_API_KEY=your-google-api-key
+DATABASE_URL=postgresql://myusers:newpassword@localhost/progress
+The versions specified are stable and compatible with each other. You can update them as needed, but these should work well together for your progress tracking application.
+
+
+
+
+
+
+
+
+# Flask and Core Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Database and ORM
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+SQLAlchemy==2.0.21
+psycopg2-binary==2.9.7
+
+# Authentication and User Management
+Flask-Login==0.6.3
+
+# Google Generative AI (Gemini)
+google-generativeai==0.3.1
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Date and Time Utilities (built-in, but listing related packages)
+pytz==2023.3
+
+# JSON handling (built-in in Python)
+# Collections (built-in in Python)
+
+# Additional useful packages for production
+gunicorn==21.2.0
+python-dateutil==2.8.2
+
+# Security enhancements
+cryptography==41.0.4
+
+# Optional: For better development experience
+python-decouple==3.8
+
